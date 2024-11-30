@@ -15,6 +15,15 @@ lazy_bot = lazydeveloperrsession
 
 
 
+
+from asyncio import Lock, Queue, create_task
+user_tasks = {}
+user_locks = {}
+
+MAX_ACTIVE_TASKS = 5  # Limit for simultaneous renaming tasks per user
+
+
+
 @Client.on_callback_query(filters.regex('cancel'))
 async def cancel(bot, update):
     try:
@@ -44,46 +53,40 @@ def get_manager():
     return handler
 
 
-
-from queue import Queue
-from asyncio import Lock
-user_tasks = {}
-user_locks = {}
-
-MAX_ACTIVE_TASKS = 5  # Limit for simultaneous renaming tasks per user
-
-
 @Client.on_callback_query(filters.regex("upload"))
 async def lazydevelopertaskmanager(bot, update):
     try:
         user_id = update.from_user.id
 
-        # Initialize user-specific task tracking
+        # Initialize user-specific task tracking if not present
         if user_id not in user_tasks:
             user_tasks[user_id] = {
                 "active": 0,  # Active renaming tasks
                 "queue": Queue(),  # Pending tasks queue
             }
             user_locks[user_id] = Lock()  # Lock for managing task execution
+
         task_data = {
             "update": update,
             "type": update.data.split("_")[1],
             "new_name": update.message.text.split(":-")[1],
         }
-        print(task_data)
-        # Add the task to the queue if the limit is reached
+
+        # Manage task execution
         async with user_locks[user_id]:
             if user_tasks[user_id]["active"] >= MAX_ACTIVE_TASKS:
-                user_tasks[user_id]["queue"].put(task_data)
-                await update.message.edit("🔄 Your task is in the pending queue. It will start soon.")
+                # Add task to queue
+                await user_tasks[user_id]["queue"].put(task_data)
+                await update.message.edit("🔄 Task is in the queue. It will start soon.")
             else:
+                # Increment active tasks and process immediately
                 user_tasks[user_id]["active"] += 1
-                await process_task(bot, user_id, task_data)
+                create_task(process_task(bot, user_id, task_data))  # Start task in background
     except Exception as e:
-        print(f"Exceptionerror: {e}")
+        print(f"Error in lazydevelopertaskmanager: {e}")
 
 
-# @Client.on_callback_query(filters.regex("upload"))
+
 async def process_task(bot, user_id, task_data):
     try:
         update = task_data["update"]
@@ -353,11 +356,11 @@ async def process_task(bot, user_id, task_data):
     except Exception as lazydeveloperr:
         print(lazydeveloperr)
     finally:
+        # Decrement active task count and process next task from queue
         async with user_locks[user_id]:
-            user_tasks[user_id]["active"] -= 1  # Decrement active tasks count
-            # Check if there are pending tasks in the queue
+            user_tasks[user_id]["active"] -= 1
             if not user_tasks[user_id]["queue"].empty():
-                next_task = user_tasks[user_id]["queue"].get()
-                await process_task(bot, user_id, next_task)
+                next_task = await user_tasks[user_id]["queue"].get()
+                create_task(process_task(bot, user_id, next_task))  # Start next task in background
         
     
