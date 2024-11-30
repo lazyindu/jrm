@@ -55,28 +55,33 @@ MAX_ACTIVE_TASKS = 5  # Limit for simultaneous renaming tasks per user
 
 @Client.on_callback_query(filters.regex("upload"))
 async def lazydevelopertaskmanager(bot, update):
-    user_id = update.from_user.id
+    try:
+        user_id = update.from_user.id
 
-    # Initialize user-specific task tracking
-    if user_id not in user_tasks:
-        user_tasks[user_id] = {
-            "active": 0,  # Active renaming tasks
-            "queue": Queue(),  # Pending tasks queue
+        # Initialize user-specific task tracking
+        if user_id not in user_tasks:
+            user_tasks[user_id] = {
+                "active": 0,  # Active renaming tasks
+                "queue": Queue(),  # Pending tasks queue
+            }
+            user_locks[user_id] = Lock()  # Lock for managing task execution
+        task_data = {
+            "update": update,
+            "type": update.data.split("_")[1],
+            "new_name": update.message.text.split(":-")[1],
         }
-        user_locks[user_id] = Lock()  # Lock for managing task execution
-    task_data = {
-        "update": update,
-        "type": update.data.split("_")[1],
-        "new_name": update.message.text.split(":-")[1],
-    }
-    # Add the task to the queue if the limit is reached
-    async with user_locks[user_id]:
-        if user_tasks[user_id]["active"] >= MAX_ACTIVE_TASKS:
-            user_tasks[user_id]["queue"].put(task_data)
-            await update.message.edit("🔄 Your task is in the pending queue. It will start soon.")
-        else:
-            user_tasks[user_id]["active"] += 1
-            await process_task(bot, user_id, task_data)
+        print(task_data)
+        # Add the task to the queue if the limit is reached
+        async with user_locks[user_id]:
+            if user_tasks[user_id]["active"] >= MAX_ACTIVE_TASKS:
+                user_tasks[user_id]["queue"].put(task_data)
+                await update.message.edit("🔄 Your task is in the pending queue. It will start soon.")
+            else:
+                user_tasks[user_id]["active"] += 1
+                await process_task(bot, user_id, task_data)
+    except Exception as e:
+        print(f"Exceptionerror: {e}")
+
 
 # @Client.on_callback_query(filters.regex("upload"))
 async def process_task(bot, user_id, task_data):
@@ -306,7 +311,7 @@ async def process_task(bot, user_id, task_data):
                             lazydeveloper_size = 2090000000
                             if filesize < lazydeveloper_size:
                                 # await lgbtq.forward_messages('@LazyDevDemo_BOT', msg.id, target_chat_id)
-                                await run_lazybot.send_message(update.chat.id, msg.text or "", file=got_lazy_file)
+                                await run_lazybot.send_message(BOT_USERNAME, msg.text or "", file=got_lazy_file)
                                 # print(f"✅ Forwarded media with ID {msg.id}")
                                 await asyncio.sleep(1)
                                 await run_lazybot.delete_messages(lazy_target_chat_id, msg.id)

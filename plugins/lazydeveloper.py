@@ -383,7 +383,7 @@ async def rename(client, message):
                 lazydeveloper_size = 2090000000
                 # filtering file with 2gb limit - @LazyDeveloper
                 if filesize < lazydeveloper_size:
-                    await lazy_userbot.send_message(message.chat.id, msg.text or "", file=got_lazy_file)
+                    await lazy_userbot.send_message(BOT_USERNAME, msg.text or "", file=got_lazy_file)
                     # print(f"✅ Forwarded media with ID {msg.id}, Size: {file_size} bytes")
                     await asyncio.sleep(1)
                     # Delete the message from the target channel
