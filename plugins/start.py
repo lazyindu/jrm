@@ -7,7 +7,9 @@ import random
 from helpo.txt import mr
 from helpo.database import db
 from config import START_PIC, FLOOD, ADMIN 
-
+import re
+import requests
+from bs4 import BeautifulSoup
 
 @Client.on_message(filters.private & filters.command(["start"]))
 async def start(client, message):
@@ -28,7 +30,26 @@ async def start(client, message):
         await message.reply_photo(START_PIC, caption=txt, reply_markup=button)       
     else:
         await message.reply_text(text=txt, reply_markup=button, disable_web_page_preview=True)
-   
+
+def extract_movie_name(filename):
+    # Regular expression to extract the movie name and year
+    match = re.search(r"([a-zA-Z\s]+)\((\d{4})\)", filename)
+    if match:
+        return match.group(1).strip() + " (" + match.group(2) + ")"
+    # If no match, remove unwanted tags and try to simplify
+    filename = re.sub(r"[\[\]\(\)\-_\.\@\d+pHEVC|HDRip|AAC|x\d+|Subs|Series|Movies|Hindi|English|x\d+|BluRay|WEB|MKV|MP4]", " ", filename, flags=re.IGNORECASE)
+    filename = re.sub(r"\s+", " ", filename).strip()
+    return filename
+
+def search_imdb(movie_name):
+    # Search IMDb for the movie title
+    url = f"https://www.imdb.com/find?q={movie_name.replace(' ', '+')}&s=tt&ttype=ft&ref_=fn_ft"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    results = soup.select(".findResult .result_text a")
+    if results:
+        return results[0].text
+    return "Movie not found on IMDb."
 
 @Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
 async def rename_start(client, message):
@@ -36,11 +57,17 @@ async def rename_start(client, message):
     filename = file.file_name
     filesize = humanize.naturalsize(file.file_size) 
     fileid = file.file_id
+    # 
+    file_name = message.document.file_name
+    movie_name = extract_movie_name(file_name)
+    imdb_title = search_imdb(movie_name)
     try:
         text = f"""**__What do you want me to do with this file.?__**\n\n**File Name** :- `{filename}`\n\n**File Size** :- `{filesize}`"""
         buttons = [[ InlineKeyboardButton("📝 𝚂𝚃𝙰𝚁𝚃 𝚁𝙴𝙽𝙰𝙼𝙴 📝", callback_data="rename") ],
                    [ InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel") ]]
         await message.reply_text(text=text, reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup(buttons))
+        await message.reply_text(f"Original IMDb Title: {imdb_title}")
+
         await sleep(FLOOD)
     except FloodWait as e:
         await sleep(e.value)
@@ -48,6 +75,8 @@ async def rename_start(client, message):
         buttons = [[ InlineKeyboardButton("📝 𝚂𝚃𝙰𝚁𝚃 𝚁𝙴𝙽𝙰𝙼𝙴 📝", callback_data="rename") ],
                    [ InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel") ]]
         await message.reply_text(text=text, reply_to_message_id=message.id, reply_markup=InlineKeyboardMarkup(buttons))
+        await message.reply_text(f"Original IMDb Title: {imdb_title}")
+
     except:
         pass
 

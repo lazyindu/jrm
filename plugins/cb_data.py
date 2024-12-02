@@ -20,7 +20,7 @@ from asyncio import Lock, Queue, create_task
 user_tasks = {}
 user_locks = {}
 
-MAX_ACTIVE_TASKS = 5  # Limit for simultaneous renaming tasks per user
+# MAX_ACTIVE_TASKS = 5  # Limit for simultaneous renaming tasks per user
 
 
 

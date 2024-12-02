@@ -22,6 +22,8 @@ ADMIN = [int(admin) if id_pattern.search(admin) else admin for admin in os.envir
 
 # Bot_Username = "@LazyPrincessXBOT"
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "@FileRenamesRobot")
+MAX_ACTIVE_TASKS = int(os.environ.get("MAX_ACTIVE_TASKS", "5"))
+MAX_FORWARD = int(os.environ.get("MAX_FORWARD", "20"))
 
 PORT = os.environ.get('PORT', '8080')
 

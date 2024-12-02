@@ -363,7 +363,7 @@ async def rename(client, message):
     # Iterating through messages
     max_limit = 100  # High limit to fetch more messages if some are skipped
     forwarded_lazy_count = 0
-    max_forward_lazy_count = 20 
+    max_forward_lazy_count = MAX_FORWARD #// 20 
     skiped_lazy_files = 0 
     try:
         async for msg in lazy_userbot.iter_messages(target_chat_id, limit=100):

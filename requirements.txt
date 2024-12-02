@@ -9,3 +9,5 @@ dnspython
 aiohttp 
 pyromod==1.5
 telethon
+beautifulsoup4
+requests
